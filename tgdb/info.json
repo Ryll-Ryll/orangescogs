@@ -2,7 +2,7 @@
     "author": ["oranges"],
     "install_msg": "Thank you for installing tgdb.",
     "name": "SS13 tgdb module",
-    "short": "Numerous helper modules for a discord bot that can be linked to a tgstation database instance",
+    "short": "Base module for helper cogs that interoperate with the tg database schema",
     "requirements": [
         "aiomysql>=0.0.20"
     ],
