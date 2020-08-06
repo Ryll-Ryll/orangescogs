@@ -17,10 +17,10 @@ log = logging.getLogger("red.oranges_tgverify")
 BaseCog = getattr(commands, "Cog", object)
 
 #Subtype the commands checkfailure
-class UnableToVerify(commands.CheckFailure):
+class TGRecoverableError(commands.CheckFailure):
     pass
 
-class TGverifySystemError(commands.CheckFailure):
+class TGUnrecoverableError(commands.CheckFailure):
     pass
 
 class TGverify(BaseCog):
@@ -115,7 +115,7 @@ class TGverify(BaseCog):
         role = ctx.guild.get_role(role)
         TGDB = self.bot.get_cog("TGDB")
         if not TGDB:
-            raise TGverifySystemError("TGDB must exist and be configured for tgverify cog to work")
+            raise TGUnrecoverableError("TGDB must exist and be configured for tgverify cog to work")
 
         message = await ctx.send("Attempting to verify you....")
         async with ctx.typing():
@@ -124,10 +124,11 @@ class TGverify(BaseCog):
                 await ctx.message.delete()
             except(discord.DiscordException):
                 await ctx.send("I do not have the required permissions to delete messages, please remove/edit the one time token. manually.")
+            
             # Attempt to find the user based on the one time token passed in.
             ckey = await TGDB.lookup_ckey_by_token(ctx, one_time_token)
             if ckey is None:
-                    raise UnableToVerify(f"Sorry {ctx.author} looks like we don't recognise this one use token, or couldn't link it to a user account, go back into game and generate another! if it's still failing, ask for support from the verification team")
+                    raise TGRecoverableError(f"Sorry {ctx.author} it looks like we don't recognise this one use token, or couldn't link it to a user account, go back into game and generate another! if it's still failing, ask for support from the verification team")
             
             
             log.info(f"Verification request by {ctx.author.id}, for ckey {ckey}")
@@ -135,7 +136,7 @@ class TGverify(BaseCog):
             player = await TGDB.get_player_by_ckey(ctx, ckey)
             
             if player is None:
-                raise UnableToVerify(f"Sorry {ctx.author} looks like we couldn't look up your user, ask the verification team for support!")
+                raise TGRecoverableError(f"Sorry {ctx.author} looks like we couldn't look up your user, ask the verification team for support!")
 
             if player['living_time'] <= min_required_living_minutes:
                 return await message.edit(content=f"Sorry {ctx.author} you only have {player['living_time']} minutes as a living player on our servers, and you require at least {min_required_living_minutes}! You will need to play more on our servers to access all the discord channels")
@@ -150,12 +151,12 @@ class TGverify(BaseCog):
     @verify.error
     async def verify_error(self, ctx, error):
         # Our custom, something recoverable went wrong error type
-        if isinstance(error, UnableToVerify):
+        if isinstance(error, TGRecoverableError):
             embed=discord.Embed(title=f"Error attempting to verify you:", description=f"{format(error)}", color=0xff0000)
             await ctx.send(content=f"", embed=embed)
         else:
             # Something went badly wrong, log to the console
-            log.error("Internal error while verifying", error)
+            log.exception("Internal error while verifying a user")
             # now pretend everything is fine to the user :>
             embed=discord.Embed(title=f"System error occurred", description=f"Contact the server admins for assistance", color=0xff0000)
             await ctx.send(content=f"", embed=embed)
