@@ -45,7 +45,7 @@ class TGverify(BaseCog):
     @checks.admin_or_permissions(administrator=True)
     async def tgverify_config(self,ctx): 
         """
-        SS13 Configure the MySQL database connection settings
+        SS13 Configure the settings on the verification cog
         """
         pass
     
